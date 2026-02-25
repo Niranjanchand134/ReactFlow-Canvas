@@ -36,7 +36,7 @@ const ResultNode = ({ id, data, selected }: NodeProps) => {
 
     return (
         <div
-            className={`group relative bg-slate-900/90 backdrop-blur border ${hasImage ? 'border-emerald-500 ring-8 ring-emerald-500/5' : 'border-slate-700'} rounded-xl shadow-2xl transition-all h-full w-full`}
+            className={`group relative p-2 bg-slate-900/90 backdrop-blur border ${hasImage ? 'border-emerald-500 ring-8 ring-emerald-500/5' : 'border-slate-700'} rounded-xl shadow-2xl transition-all h-full w-full`}
         >
             {hasImage && (
                 <NodeResizeControl style={controlStyle} minWidth={150} minHeight={100}>

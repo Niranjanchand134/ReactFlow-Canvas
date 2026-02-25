@@ -2,7 +2,7 @@ import {
   Undo,
   Redo,
   Play,
-  Share2,
+  Save,
   UploadCloud,
   User,
   Workflow,
@@ -66,8 +66,8 @@ export default function Header({
           onClick={onRun}
           disabled={isRunning}
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${isRunning
-              ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.2)]'
-              : 'text-slate-300 bg-slate-800 hover:bg-slate-700 border-slate-700'
+            ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.2)]'
+            : 'text-slate-300 bg-slate-800 hover:bg-slate-700 border-slate-700'
             }`}
         >
           {isRunning ? (
@@ -83,8 +83,8 @@ export default function Header({
           )}
         </button>
         <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all">
-          <Share2 className="w-3.5 h-3.5" />
-          Share
+          <Save className="w-3.5 h-3.5" />
+          Save
         </button>
         <button className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all shadow-md shadow-indigo-900/10">
           <UploadCloud className="w-3.5 h-3.5" />
