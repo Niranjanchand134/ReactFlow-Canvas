@@ -12,24 +12,28 @@ import ReactFlow, {
   useViewport,
   MiniMap
 } from 'reactflow';
-import TextUpdaterNode from './nodes/TextUpdaterNode';
+import InputNode from './nodes/InputNode';
 import OperationNode from './nodes/OperationNode';
 import ResultNode from './nodes/ResultNode';
 import { Plus, Minus, Scan, Maximize } from 'lucide-react';
 import ImageNode from './nodes/ImageNode';
+import CumulativeNode from './nodes/CumulativeNode';
 import { CustomEdge } from './edges/CustomEdge';
+import ContextMenu from './ContextMenu';
 
-const nodeTypes = {
-  textUpdater: TextUpdaterNode,
+// Move nodeTypes and edgeTypes outside or memoize them
+const INITIAL_NODE_TYPES = {
+  textUpdater: InputNode,
   additionNode: OperationNode,
   subtractionNode: OperationNode,
   multiplicationNode: OperationNode,
   divisionNode: OperationNode,
   resultNode: ResultNode,
   imageNode: ImageNode,
+  cumulativeNode: CumulativeNode,
 };
 
-const edgeTypes = {
+const INITIAL_EDGE_TYPES = {
   custom: CustomEdge,
 };
 
@@ -76,6 +80,12 @@ function CustomMinimap() {
 const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: any) => void }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [menu, setMenu] = React.useState<{ x: number, y: number, nodeId?: string, hasImage?: boolean } | null>(null);
+
+  // Memoize nodeTypes and edgeTypes to satisfy React Flow warnings and optimize renders
+  const nodeTypes = React.useMemo(() => INITIAL_NODE_TYPES, []);
+  const edgeTypes = React.useMemo(() => INITIAL_EDGE_TYPES, []);
+
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow();
 
   const history = useRef<{ nodes: any[], edges: any[] }[]>([]);
@@ -147,6 +157,88 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
       })
     );
   }, [setNodes]);
+
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: any) => {
+      event.preventDefault();
+      const hasImage = !!node.data.image;
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        hasImage,
+      });
+    },
+    [setMenu]
+  );
+
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [setMenu]
+  );
+
+  const onPaneClick = useCallback(() => setMenu(null), [setMenu]);
+
+  const onDuplicate = useCallback((id: string) => {
+    const node = getNodes().find((n) => n.id === id);
+    if (!node) return;
+
+    const newNode = {
+      ...node,
+      id: `node_dup_${Date.now()}`,
+      position: {
+        x: node.position.x + 40,
+        y: node.position.y + 40,
+      },
+      selected: true,
+      data: {
+        ...node.data,
+        onChange: onNodeValueChange,
+        onDelete: onDeleteNode,
+      },
+    };
+
+    pushToHistory();
+    setNodes((nds) => nds.map(n => ({ ...n, selected: false })).concat(newNode));
+    setMenu(null);
+  }, [getNodes, setNodes, pushToHistory, onNodeValueChange, onDeleteNode]);
+
+  const onExport = useCallback(() => {
+    const flowData = {
+      nodes: getNodes(),
+      edges: getEdges(),
+    };
+
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `flow-config-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setMenu(null);
+  }, [getNodes, getEdges]);
+
+  const onDownloadImage = useCallback((id: string) => {
+    const node = getNodes().find((n) => n.id === id);
+    if (!node || !node.data.image) return;
+
+    const link = document.createElement('a');
+    link.href = node.data.image;
+    link.download = `exported-image-${id}-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setMenu(null);
+  }, [getNodes]);
 
   const isValidConnection = useCallback((connection: Connection) => {
     const targetNode = getNodes().find((n) => n.id === connection.target);
@@ -222,6 +314,11 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
             value = (inputs[0] ?? 0) / (inputs[1] ?? 1);
           }
           break;
+        case 'cumulativeNode':
+          const n = Number(inputs[0] ?? 0);
+          // CS(n) = 0 + 1 + ... + (n-1) = n(n-1)/2
+          value = (n * (n - 1)) / 2;
+          break;
         case 'resultNode':
           const input = inputs[0];
           if (typeof input === 'string' && input.startsWith('data:image')) {
@@ -232,6 +329,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
             image = undefined;
           }
           break;
+
       }
 
       results[nodeId] = error ? { error } : { value, image };
@@ -326,6 +424,10 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
         onNodesDelete={pushToHistory}
         onEdgesDelete={pushToHistory}
         onNodeDragStop={pushToHistory}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneContextMenu={onPaneContextMenu}
+        onPaneClick={onPaneClick}
+        onMoveStart={onPaneClick}
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -344,6 +446,19 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
         />
         <CustomControls />
         <CustomMinimap />
+        {menu && (
+          <ContextMenu
+            x={menu.x}
+            y={menu.y}
+            nodeId={menu.nodeId}
+            hasImage={menu.hasImage}
+            onDuplicate={onDuplicate}
+            onDelete={onDeleteNode}
+            onDownloadImage={onDownloadImage}
+            onExport={onExport}
+            onClose={() => setMenu(null)}
+          />
+        )}
       </ReactFlow>
     </div>
   );

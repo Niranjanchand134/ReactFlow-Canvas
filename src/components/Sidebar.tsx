@@ -13,6 +13,7 @@ import {
   Box,
   GripVertical,
   Image,
+  Sigma,
 } from 'lucide-react';
 import { useDraggable } from '@neodrag/react';
 
@@ -98,6 +99,14 @@ const SIDEBAR_CATEGORIES: CategoryDefinition[] = [
         iconBg: 'bg-emerald-500/10',
         iconColor: 'text-emerald-400',
       },
+      {
+        type: 'imageNode',
+        label: 'Image',
+        sublabel: 'Upload media',
+        icon: <Image />,
+        iconBg: 'bg-indigo-500/10',
+        iconColor: 'text-indigo-400',
+      }
     ]
   },
   {
@@ -133,21 +142,13 @@ const SIDEBAR_CATEGORIES: CategoryDefinition[] = [
         icon: <Percent />,
         iconBg: 'bg-orange-500/10',
         iconColor: 'text-orange-400',
-      }
-    ]
-  },
-  {
-    id: 'media',
-    title: 'Media / Image Nodes',
-    icon: <Image className="w-4 h-4" style={{ color: '#f97316' }} />,
-    items: [
+      },
       {
-        type: 'imageNode',
-        label: 'Image',
-        sublabel: 'Upload media',
-        icon: <Image />,
-        iconBg: 'bg-indigo-500/10',
-        iconColor: 'text-indigo-400',
+        type: 'cumulativeNode',
+        label: 'Cumulative',
+        icon: <Sigma />,
+        iconBg: 'bg-orange-500/10',
+        iconColor: 'text-orange-400',
       }
     ]
   }

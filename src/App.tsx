@@ -43,6 +43,33 @@ function MainContent() {
     setHistoryStatus(status);
   }, []);
 
+  // Keyboard Shortcuts for Undo/Redo
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+      const modifier = isMac ? event.metaKey : event.ctrlKey;
+
+      if (modifier && event.key === 'z') {
+        if (event.shiftKey) {
+          // Redo: Cmd+Shift+Z (Mac)
+          event.preventDefault();
+          onRedo();
+        } else {
+          // Undo: Ctrl+Z or Cmd+Z
+          event.preventDefault();
+          onUndo();
+        }
+      } else if (modifier && event.key === 'y') {
+        // Redo: Ctrl+Y or Cmd+Y
+        event.preventDefault();
+        onRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onUndo, onRedo]);
+
   return (
     <div className="h-screen flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans">
       <Header
