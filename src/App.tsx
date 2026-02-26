@@ -3,13 +3,17 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import FlowCanvas from './components/FlowCanvas';
-import { ReactFlowProvider, useReactFlow } from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 function MainContent() {
   const canvasRef = useRef<{
     execute: () => void,
     undo: () => void,
     redo: () => void,
+    copy: () => void,
+    paste: () => void,
+    selectAll: () => void,
     canUndo: boolean,
     canRedo: boolean
   } | null>(null);
@@ -43,32 +47,32 @@ function MainContent() {
     setHistoryStatus(status);
   }, []);
 
-  // Keyboard Shortcuts for Undo/Redo
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
-      const modifier = isMac ? event.metaKey : event.ctrlKey;
+  const onCopy = useCallback(() => {
+    if (canvasRef.current) {
+      canvasRef.current.copy();
+    }
+  }, []);
 
-      if (modifier && event.key === 'z') {
-        if (event.shiftKey) {
-          // Redo: Cmd+Shift+Z (Mac)
-          event.preventDefault();
-          onRedo();
-        } else {
-          // Undo: Ctrl+Z or Cmd+Z
-          event.preventDefault();
-          onUndo();
-        }
-      } else if (modifier && event.key === 'y') {
-        // Redo: Ctrl+Y or Cmd+Y
-        event.preventDefault();
-        onRedo();
-      }
-    };
+  const onPaste = useCallback(() => {
+    if (canvasRef.current) {
+      canvasRef.current.paste();
+    }
+  }, []);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onUndo, onRedo]);
+  const onSelectAll = useCallback(() => {
+    if (canvasRef.current) {
+      canvasRef.current.selectAll();
+    }
+  }, []);
+
+  // Keyboard Shortcuts for Undo/Redo/Copy/Paste
+  useKeyboardShortcuts({
+    onUndo,
+    onRedo,
+    onCopy,
+    onPaste,
+    onSelectAll,
+  });
 
   return (
     <div className="h-screen flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans">

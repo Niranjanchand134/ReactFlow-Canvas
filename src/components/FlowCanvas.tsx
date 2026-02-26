@@ -81,6 +81,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [menu, setMenu] = React.useState<{ x: number, y: number, nodeId?: string, hasImage?: boolean } | null>(null);
+  const [showCopyFeedback, setShowCopyFeedback] = React.useState(false);
 
   // Memoize nodeTypes and edgeTypes to satisfy React Flow warnings and optimize renders
   const nodeTypes = React.useMemo(() => INITIAL_NODE_TYPES, []);
@@ -90,6 +91,8 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
 
   const history = useRef<{ nodes: any[], edges: any[] }[]>([]);
   const future = useRef<{ nodes: any[], edges: any[] }[]>([]);
+  const copyBuffer = useRef<any[]>([]);
+  const pasteCount = useRef(0);
 
   const pushToHistory = useCallback(() => {
     history.current.push({ nodes: getNodes(), edges: getEdges() });
@@ -240,6 +243,48 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     setMenu(null);
   }, [getNodes]);
 
+  const copy = useCallback(() => {
+    const selectedNodes = getNodes().filter((n) => n.selected);
+    if (selectedNodes.length > 0) {
+      copyBuffer.current = selectedNodes;
+      pasteCount.current = 0; // Reset offset count on new copy
+
+      // Show feedback
+      setShowCopyFeedback(true);
+      setTimeout(() => setShowCopyFeedback(false), 2000);
+    }
+  }, [getNodes]);
+
+  const selectAll = useCallback(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: true })));
+  }, [setNodes]);
+
+  const paste = useCallback(() => {
+    if (copyBuffer.current.length === 0) return;
+
+    pasteCount.current += 1;
+    const offset = 20 * pasteCount.current;
+
+    const newNodes = copyBuffer.current.map((node) => ({
+      ...node,
+      id: `node_paste_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      position: {
+        x: node.position.x + offset,
+        y: node.position.y + offset,
+      },
+      selected: true,
+      data: {
+        ...node.data,
+        onChange: onNodeValueChange,
+        onDelete: onDeleteNode,
+      },
+    }));
+
+    pushToHistory();
+    // Deselect current nodes and add new ones
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })).concat(newNodes));
+  }, [getNodes, setNodes, pushToHistory, onNodeValueChange, onDeleteNode]);
+
   const isValidConnection = useCallback((connection: Connection) => {
     const targetNode = getNodes().find((n) => n.id === connection.target);
     const sourceNode = getNodes().find((n) => n.id === connection.source);
@@ -365,6 +410,9 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     execute: onExecute,
     undo,
     redo,
+    copy,
+    paste,
+    selectAll,
     canUndo: history.current.length > 0,
     canRedo: future.current.length > 0
   }));
@@ -458,6 +506,13 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
             onExport={onExport}
             onClose={() => setMenu(null)}
           />
+        )}
+
+        {showCopyFeedback && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-indigo-600/90 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-2xl border border-indigo-400/30 animate-in slide-in-from-bottom-2 fade-in duration-300 z-[60] flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+            Nodes Copied to Clipboard
+          </div>
         )}
       </ReactFlow>
     </div>
