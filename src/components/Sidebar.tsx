@@ -14,6 +14,9 @@ import {
   GripVertical,
   Image,
   Sigma,
+  SlidersHorizontal,
+  Layers,
+  Download,
 } from 'lucide-react';
 import { useDraggable } from '@neodrag/react';
 
@@ -107,6 +110,29 @@ const SIDEBAR_CATEGORIES: CategoryDefinition[] = [
         icon: <Image />,
         iconBg: 'bg-indigo-500/10',
         iconColor: 'text-indigo-400',
+      }
+    ]
+  },
+  {
+    id: 'image',
+    title: 'Image Pipeline',
+    icon: <Image className="text-indigo-400 w-4 h-4" />,
+    items: [
+      {
+        type: 'filterNode',
+        label: 'Filter',
+        sublabel: 'Apply color, blur, and tone',
+        icon: <SlidersHorizontal />,
+        iconBg: 'bg-amber-500/10',
+        iconColor: 'text-amber-400',
+      },
+      {
+        type: 'compositeNode',
+        label: 'Composite',
+        sublabel: 'Blend two images',
+        icon: <Layers />,
+        iconBg: 'bg-emerald-500/10',
+        iconColor: 'text-emerald-400',
       }
     ]
   },

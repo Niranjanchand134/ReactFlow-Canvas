@@ -66,12 +66,12 @@ const ResultNode = ({ id, data, selected, theme }: NodeProps & { theme?: 'light'
 
                 {/* Content Area */}
                 <div className={`flex-1 flex flex-col overflow-hidden min-h-0 pointer-events-auto ${hasImage ? 'p-0' : 'p-4 space-y-4'}`}>
-                    <div className={`${isDark ? 'bg-slate-950' : 'bg-white'} flex-1 flex items-center justify-center overflow-hidden ${!hasImage ? (isDark ? 'p-4 rounded-lg border border-slate-800' : 'p-4 rounded-lg border border-slate-200') : ''}`}>
+            <div className={`${isDark ? 'bg-slate-950' : 'bg-white'} flex-1 flex items-center justify-center overflow-hidden min-h-0 ${!hasImage ? (isDark ? 'p-4 rounded-lg border border-slate-800' : 'p-4 rounded-lg border border-slate-200') : ''}`}>
                         {hasImage ? (
                             <img
                                 src={data.image}
                                 alt="Result"
-                                className="w-full h-full object-contain pointer-events-none"
+                                className="w-full h-full object-contain pointer-events-none max-w-full max-h-full"
                             />
                         ) : (
                             <span className={`text-2xl font-bold font-mono whitespace-nowrap overflow-x-auto w-full text-center scrollbar-hide ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>

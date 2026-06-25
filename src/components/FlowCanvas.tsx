@@ -6,6 +6,8 @@ import ReactFlow, {
   addEdge,
   Connection,
   Edge,
+  Node,
+  getIncomers,
   BackgroundVariant,
   Panel,
   useReactFlow,
@@ -15,9 +17,11 @@ import ReactFlow, {
 import InputNode from './nodes/InputNode';
 import OperationNode from './nodes/OperationNode';
 import ResultNode from './nodes/ResultNode';
-import { Plus, Minus, Scan, Maximize } from 'lucide-react';
 import ImageNode from './nodes/ImageNode';
 import CumulativeNode from './nodes/CumulativeNode';
+import FilterNode from './nodes/FilterNode';
+import CompositeNode from './nodes/CompositeNode';
+import { Plus, Minus, Scan, Maximize } from 'lucide-react';
 import { CustomEdge } from './edges/CustomEdge';
 import ContextMenu from './ContextMenu';
 import { SuccesfulMessageToast, ErrorMessageToast, WarningMessageToast } from '../utils/Tostify.util';
@@ -31,6 +35,8 @@ const BASE_NODE_TYPES = {
   divisionNode: OperationNode,
   resultNode: ResultNode,
   imageNode: ImageNode,
+  filterNode: FilterNode,
+  compositeNode: CompositeNode,
   cumulativeNode: CumulativeNode,
 };
 
@@ -95,7 +101,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange, theme }: { onHistoryChange: (s
 
   const edgeTypes = React.useMemo(() => EDGE_TYPES, []);
 
-  const { screenToFlowPosition, getNodes, getEdges } = useReactFlow();
+  const { screenToFlowPosition, getNodes, getEdges, setViewport } = useReactFlow();
 
   const history = useRef<{ nodes: any[], edges: any[] }[]>([]);
   const future = useRef<{ nodes: any[], edges: any[] }[]>([]);
@@ -152,14 +158,18 @@ const FlowCanvas = forwardRef(({ onHistoryChange, theme }: { onHistoryChange: (s
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === id) {
-          // If newValue is a string representing image data, update the image field
           if (typeof newValue === 'string' && newValue.startsWith('data:image')) {
             return {
               ...node,
               data: { ...node.data, image: newValue, value: undefined },
             };
           }
-          // Default behavior for text/number inputs
+          if (typeof newValue === 'object' && newValue !== null) {
+            return {
+              ...node,
+              data: { ...node.data, ...newValue },
+            };
+          }
           return {
             ...node,
             data: { ...node.data, value: newValue },
@@ -318,100 +328,241 @@ const FlowCanvas = forwardRef(({ onHistoryChange, theme }: { onHistoryChange: (s
     return true;
   }, [getNodes, getEdges]);
 
-  const onExecute = useCallback(() => {
+  const onExecute = useCallback(async () => {
     const currentNodes = [...getNodes()];
     const currentEdges = getEdges();
 
     const results: Record<string, any> = {};
+    const cache = new Map<string, string | number | null>();
 
-    const evaluate = (nodeId: string): any => {
-      // Return cached result if exist
-      if (results[nodeId] !== undefined) {
-        return results[nodeId].value !== undefined ? results[nodeId].value : results[nodeId].image;
+    const loadImage = (src: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+
+    const applyFilter = async (src: string, filter: string, amount: number): Promise<string | null> => {
+      if (!src) return null;
+      try {
+        const image = await loadImage(src);
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        switch (filter) {
+          case 'grayscale':
+            ctx.filter = 'grayscale(100%)';
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          case 'blackWhite':
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            const bwData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < bwData.data.length; i += 4) {
+              const avg = (bwData.data[i] + bwData.data[i + 1] + bwData.data[i + 2]) / 3;
+              const value = avg < 128 ? 0 : 255;
+              bwData.data[i] = value;
+              bwData.data[i + 1] = value;
+              bwData.data[i + 2] = value;
+            }
+            ctx.putImageData(bwData, 0, 0);
+            break;
+          case 'sepia':
+            ctx.filter = 'sepia(1)';
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          case 'invert':
+            ctx.filter = 'invert(100%)';
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          case 'rgb':
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            const rgbData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < rgbData.data.length; i += 4) {
+              rgbData.data[i] = Math.min(255, rgbData.data[i] * 1.2);
+              rgbData.data[i + 1] = Math.min(255, rgbData.data[i + 1] * 1.2);
+              rgbData.data[i + 2] = Math.min(255, rgbData.data[i + 2] * 1.2);
+            }
+            ctx.putImageData(rgbData, 0, 0);
+            break;
+          case 'red':
+          case 'green':
+          case 'blue': {
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            const toneData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < toneData.data.length; i += 4) {
+              if (filter === 'red') {
+                toneData.data[i] = Math.min(255, toneData.data[i] * 1.4);
+              }
+              if (filter === 'green') {
+                toneData.data[i + 1] = Math.min(255, toneData.data[i + 1] * 1.4);
+              }
+              if (filter === 'blue') {
+                toneData.data[i + 2] = Math.min(255, toneData.data[i + 2] * 1.4);
+              }
+            }
+            ctx.putImageData(toneData, 0, 0);
+            break;
+          }
+          case 'brightness':
+            ctx.filter = `brightness(${amount / 100})`;
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          case 'contrast':
+            ctx.filter = `contrast(${amount / 100})`;
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          case 'blur':
+            ctx.filter = `blur(${amount}px)`;
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+          default:
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+            break;
+        }
+
+        return canvas.toDataURL();
+      } catch {
+        return null;
+      }
+    };
+
+    const compositeImages = async (bottomSrc: string | null, topSrc: string | null, blend: string): Promise<string | null> => {
+      if (!bottomSrc && !topSrc) return null;
+      if (!bottomSrc && topSrc) return topSrc;
+      if (!topSrc && bottomSrc) return bottomSrc;
+
+      try {
+        const bottom = await loadImage(bottomSrc as string);
+        const top = await loadImage(topSrc as string);
+        const width = Math.max(bottom.width, top.width);
+        const height = Math.max(bottom.height, top.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(bottom, 0, 0, width, height);
+        ctx.globalCompositeOperation = blend as GlobalCompositeOperation;
+        ctx.drawImage(top, 0, 0, width, height);
+        ctx.globalCompositeOperation = 'source-over';
+        return canvas.toDataURL();
+      } catch {
+        return null;
+      }
+    };
+
+    const evaluateNode = async (nodeId: string): Promise<any> => {
+      if (cache.has(nodeId)) {
+        return cache.get(nodeId);
       }
 
       const node = currentNodes.find((n) => n.id === nodeId);
-      if (!node) return 0;
+      if (!node) return null;
 
-      // Leaf nodes
-      if (node.type === 'textUpdater') {
-        const val = Number(node.data.value);
-        return isNaN(val) ? 0 : val;
-      }
-      if (node.type === 'imageNode') {
-        return node.data.image || null;
-      }
+      const incomingNodes = getIncomers(node, currentNodes, currentEdges) || [];
+      const inputValues = await Promise.all(incomingNodes.map((inputNode) => evaluateNode(inputNode.id)));
 
-      // Recursively get inputs
-      const incomingEdges = currentEdges.filter((e) => e.target === nodeId);
-      const inputs = incomingEdges.map((e) => evaluate(e.source));
-
-      let value: any = 0;
+      let value: any = null;
       let image: any = undefined;
-      let error = null;
+      let error: any = null;
 
       switch (node.type) {
-        case 'additionNode':
-          value = (inputs[0] ?? 0) + (inputs[1] ?? 0);
+        case 'textUpdater': {
+          const val = Number(node.data.value);
+          value = isNaN(val) ? 0 : val;
           break;
-        case 'subtractionNode':
-          value = (inputs[0] ?? 0) - (inputs[1] ?? 0);
-          break;
-        case 'multiplicationNode':
-          value = (inputs[0] ?? 0) * (inputs[1] ?? 0);
-          break;
-        case 'divisionNode':
-          if (inputs[1] === 0) {
-            error = 'Cannot divide by zero';
-          } else {
-            value = (inputs[0] ?? 0) / (inputs[1] ?? 1);
-          }
-          break;
-        case 'cumulativeNode':
-          const n = Number(inputs[0] ?? 0);
-          // CS(n) = 0 + 1 + ... + (n-1) = n(n-1)/2
-          value = (n * (n - 1)) / 2;
-          break;
-        case 'resultNode':
-          const input = inputs[0];
-          if (typeof input === 'string' && input.startsWith('data:image')) {
-            image = input;
-            value = undefined;
-          } else {
-            value = input ?? 0;
-            image = undefined;
-          }
-          break;
+        }
 
+        case 'imageNode': {
+          image = node.data.image || null;
+          break;
+        }
+
+        case 'filterNode': {
+          const source = inputValues.find((v) => typeof v === 'string' && v?.startsWith('data:image')) || null;
+          image = await applyFilter(source, node.data.filter || 'grayscale', node.data.amount ?? 50);
+          break;
+        }
+
+        case 'compositeNode': {
+          const bottomEdge = currentEdges.find((e) => e.target === nodeId && e.targetHandle === 'bottom');
+          const topEdge = currentEdges.find((e) => e.target === nodeId && e.targetHandle === 'top');
+          const bottomSrc = bottomEdge ? await evaluateNode(bottomEdge.source) : null;
+          const topSrc = topEdge ? await evaluateNode(topEdge.source) : null;
+          image = await compositeImages(bottomSrc, topSrc, node.data.blend || 'multiply');
+          break;
+        }
+
+        case 'resultNode': {
+          const incoming = inputValues[0];
+          if (typeof incoming === 'string' && incoming?.startsWith('data:image')) {
+            image = incoming;
+          } else {
+            value = incoming ?? 0;
+          }
+          break;
+        }
+
+        default: {
+          if (['additionNode', 'subtractionNode', 'multiplicationNode', 'divisionNode', 'cumulativeNode'].includes(node.type || '')) {
+            const inputs = inputValues;
+            switch (node.type) {
+              case 'additionNode':
+                value = (inputs[0] ?? 0) + (inputs[1] ?? 0);
+                break;
+              case 'subtractionNode':
+                value = (inputs[0] ?? 0) - (inputs[1] ?? 0);
+                break;
+              case 'multiplicationNode':
+                value = (inputs[0] ?? 0) * (inputs[1] ?? 0);
+                break;
+              case 'divisionNode':
+                if (inputs[1] === 0) {
+                  error = 'Cannot divide by zero';
+                } else {
+                  value = (inputs[0] ?? 0) / (inputs[1] ?? 1);
+                }
+                break;
+              case 'cumulativeNode': {
+                const n = Number(inputs[0] ?? 0);
+                value = (n * (n - 1)) / 2;
+                break;
+              }
+            }
+          }
+          break;
+        }
       }
 
-      results[nodeId] = error ? { error } : { value, image };
+      const result = error ? { error } : { value, image };
+      cache.set(nodeId, image !== undefined ? image : value);
+      results[nodeId] = result;
 
       if (error) {
         ErrorMessageToast(error);
       }
 
-      return value !== undefined ? value : image;
+      return image !== undefined ? image : value;
     };
 
-    // Find all result nodes and trigger evaluation
-    const resultNodes = currentNodes.filter((n) => n.type === 'resultNode');
-    const opNodes = currentNodes.filter((n) => ['additionNode', 'subtractionNode', 'multiplicationNode', 'divisionNode'].includes(n.type || ''));
+    await Promise.all(currentNodes.map((node) => evaluateNode(node.id)));
 
-    // Evaluate all terminal/operation nodes
-    [...resultNodes, ...opNodes].forEach(n => evaluate(n.id));
-
-    // Update nodes with results
     setNodes((nds) =>
       nds.map((n) => {
         if (results[n.id] !== undefined) {
-          // Merge results into node data, ensuring we don't keep stale values/images
           return {
             ...n,
             data: {
               ...n.data,
-              ...results[n.id]
-            }
+              ...results[n.id],
+            },
           };
         }
         return n;
@@ -451,23 +602,39 @@ const FlowCanvas = forwardRef(({ onHistoryChange, theme }: { onHistoryChange: (s
         y: event.clientY,
       });
 
+      const nodeData: any = {
+        label: label || `${type}`,
+        onChange: onNodeValueChange,
+        onDelete: onDeleteNode,
+      };
+
+      if (type === 'textUpdater') {
+        nodeData.value = 0;
+      }
+      if (type === 'imageNode') {
+        nodeData.image = null;
+      }
+      if (type === 'filterNode') {
+        nodeData.filter = 'grayscale';
+        nodeData.amount = 50;
+      }
+      if (type === 'compositeNode') {
+        nodeData.blend = 'multiply';
+      }
+
       const newNode = {
         id: `node_${Date.now()}`,
         type,
         position,
-        data: {
-          label: label || `${type}`,
-          value: type === 'textUpdater' ? 0 : undefined,
-          image: type === 'imageNode' ? null : undefined,
-          onChange: onNodeValueChange,
-          onDelete: onDeleteNode
-        },
-        // Use style for initial dimensions to ensure node is "open" and visible
-        ...(type === 'imageNode' || type === 'resultNode' ? { style: { width: 250, height: 200 } } : {})
+        data: nodeData,
+        ...(type === 'imageNode' || type === 'filterNode' || type === 'compositeNode' || type === 'resultNode' ? { style: { width: 280, height: 220 } } : {})
       };
 
       pushToHistory();
       setNodes((nds) => nds.concat(newNode));
+      
+      // Set viewport zoom to 75%
+      setViewport({ x: 0, y: 0, zoom: 0.75 });
     },
     [screenToFlowPosition, setNodes, onNodeValueChange, onDeleteNode, pushToHistory]
   );
