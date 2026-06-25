@@ -32,9 +32,10 @@ function ResizeIcon() {
     );
 }
 
-const ImageNode = ({ id, data, selected }: NodeProps) => {
+const ImageNode = ({ id, data, selected, theme }: NodeProps & { theme?: 'light' | 'dark' }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [preview, setPreview] = useState<string | null>(data.image || null);
+    const isDark = theme !== 'light';
 
     const onUploadClick = () => {
         fileInputRef.current?.click();
@@ -62,7 +63,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     };
 
     return (
-        <div className={`group relative bg-slate-900 border-2 ${selected ? 'border-indigo-500 ring-8 ring-indigo-500/5' : 'border-slate-700'} rounded-xl shadow-2xl transition-all h-full w-full`}>
+        <div className={`group relative ${isDark ? 'bg-slate-900' : 'bg-white'} border-2 ${selected ? (isDark ? 'border-indigo-500 ring-8 ring-indigo-500/5' : 'border-indigo-500 ring-4 ring-indigo-100') : (isDark ? 'border-slate-700' : 'border-slate-200')} rounded-xl shadow-2xl transition-all h-full w-full`}>
             {/* Custom Resizer - Only shown when image is present */}
             {preview && (
                 <NodeResizeControl style={controlStyle} minWidth={150} minHeight={100}>
@@ -73,12 +74,12 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             {/* Clipped Inner Content */}
             <div className="absolute inset-0 overflow-hidden rounded-lg flex flex-col pointer-events-none">
                 {/* Header */}
-                <div className="flex items-center justify-between p-2 bg-slate-900/50 border-b border-slate-800 pointer-events-auto">
+                <div className={`flex items-center justify-between p-2 pointer-events-auto ${isDark ? 'bg-slate-900/50 border-b border-slate-800' : 'bg-white/90 border-b border-slate-200'}`}>
                     <div className="flex items-center gap-2">
                         <div className="p-1 bg-indigo-500/10 rounded">
                             <ImageIcon className="text-indigo-400 w-3.5 h-3.5" />
                         </div>
-                        <span className="text-[10px] font-bold text-slate-100 uppercase tracking-tight">Image</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Image</span>
                     </div>
                     <button
                         onClick={() => data.onDelete(id)}
@@ -90,7 +91,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 relative flex items-center justify-center bg-slate-950/50 min-h-0 pointer-events-auto">
+                <div className={`flex-1 relative flex items-center justify-center min-h-0 pointer-events-auto ${isDark ? 'bg-slate-950/50' : 'bg-white/90'}`}>
                     {preview ? (
                         <div className="w-full h-full p-2 flex items-center justify-center">
                             <img
@@ -101,15 +102,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2 p-4 text-center">
-                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
-                                <ImageIcon className="w-5 h-5" />
+                                <div className={`${isDark ? 'w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500' : 'w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600'}`}>
+                                    <ImageIcon className="w-5 h-5" />
+                                </div>
+                                <p className={`text-[10px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>No image uploaded</p>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium">No image uploaded</p>
-                        </div>
                     )}
 
                     {/* Hover Upload Overlay */}
-                    <div className={`absolute inset-0 bg-slate-900/60 flex items-center justify-center transition-opacity duration-200 ${preview ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                    <div className={`absolute inset-0 ${isDark ? 'bg-slate-900/60' : 'bg-white/60'} flex items-center justify-center transition-opacity duration-200 ${preview ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                         <button
                             onClick={onUploadClick}
                             className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-semibold transition-all shadow-lg active:scale-95"
@@ -133,8 +134,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             <Handle
                 type="source"
                 position={Position.Right}
-                className="w-3.5 h-3.5 bg-indigo-500 border-2 border-slate-900 rounded-full shadow-lg !right-[-7px] z-[1001]"
                 style={{ top: '50%' }}
+                className={`w-5 h-5 rounded-full shadow-lg transition-transform duration-200 ease-out hover:scale-110 active:scale-95 !right-[-9px] z-[1001] ${isDark ? 'bg-slate-700 border-2 border-slate-900' : 'bg-white border-2 border-slate-200'}`}
             />
         </div>
     );

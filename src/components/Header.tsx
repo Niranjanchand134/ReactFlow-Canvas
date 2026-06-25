@@ -6,7 +6,9 @@ import {
   UploadCloud,
   User,
   Workflow,
-  Loader2
+  Loader2,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 
@@ -16,32 +18,36 @@ export default function Header({
   onRedo,
   canUndo,
   canRedo,
-  isRunning
+  isRunning,
+  theme,
+  onToggleTheme,
 }: {
   onRun?: () => void,
   onUndo?: () => void,
   onRedo?: () => void,
   canUndo?: boolean,
   canRedo?: boolean,
-  isRunning?: boolean
+  isRunning?: boolean,
+  theme: 'light' | 'dark',
+  onToggleTheme: () => void,
 }) {
   return (
-    <header className="h-14 border-b border-slate-800 bg-slate-950 flex items-center justify-between px-4 z-50 shrink-0">
+    <header className={`h-14 border-b flex items-center justify-between px-4 z-50 shrink-0 ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-900/20">
             <Workflow className="text-white w-5 h-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-100 leading-none">Flow_Processor_v2</span>
-            <span className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-wider">Editor · Active</span>
+            <span className={`text-sm font-semibold leading-none ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>Flow_Processor_v2</span>
+            <span className={`text-[10px] font-medium mt-1 uppercase tracking-wider ${theme === 'dark' ? 'text-slate-500' : 'text-slate-500'}`}>Editor · Active</span>
           </div>
         </div>
-        <div className="h-6 w-px bg-slate-800"></div>
+        <div className={`h-6 w-px ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
         <nav className="flex items-center gap-1">
-          <button className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-all">Project</button>
-          <button className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-all">Settings</button>
-          <button className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-all">History</button>
+          <button className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'}`}>Project</button>
+          <button className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'}`}>Settings</button>
+          <button className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-200'}`}>History</button>
         </nav>
       </div>
       <div className="flex items-center gap-3">
@@ -91,9 +97,20 @@ export default function Header({
           <UploadCloud className="w-3.5 h-3.5" />
           Deploy
         </button>
-        <div className="w-px h-6 bg-slate-800 mx-2"></div>
+        <div className="w-px h-6 bg-slate-500 mx-2"></div>
+        <button
+          onClick={onToggleTheme}
+          className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center hover:border-slate-400 transition-colors"
+          title="Toggle theme"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-300" />
+          ) : (
+            <Moon className="w-4 h-4 text-slate-300" />
+          )}
+        </button>
         <button className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden hover:border-slate-400 transition-colors">
-          <User className="w-4 h-4 text-slate-400" />
+          <User className="w-4 h-4 text-slate-300" />
         </button>
       </div>
     </header>

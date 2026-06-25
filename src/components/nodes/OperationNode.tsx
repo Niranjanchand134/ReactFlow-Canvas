@@ -16,15 +16,17 @@ const operationLabels: Record<string, string> = {
     divisionNode: 'Division',
 };
 
-export default function OperationNode({ id, type, data }: { id: string, type: string, data: any }) {
+export default function OperationNode({ id, type, data, theme }: { id: string, type: string, data: any, theme?: 'light' | 'dark' }) {
     const isError = data.error;
+    const isDark = theme !== 'light';
 
     return (
-        <div className={`w-56 bg-slate-900 border-2 ${isError ? 'border-red-500 ring-8 ring-red-500/5' : 'border-indigo-500 ring-8 ring-indigo-500/5'} rounded-xl shadow-2xl p-4`}>
+        <div className={`w-56 ${isDark ? 'bg-slate-900' : 'bg-white'} border-2 ${isError ? 'border-red-500 ring-8 ring-red-500/5' : 'border-indigo-500 ring-8 ring-indigo-500/5'} rounded-xl shadow-2xl p-4`}>
             <Handle
                 type="target"
                 position={Position.Left}
-                className="w-3.5 h-3.5 bg-indigo-500 border-2 border-slate-900 rounded-full shadow-lg !left-[-7px]"
+                style={{ top: '50%' }}
+                className={`w-5 h-5 rounded-full shadow-lg transition-transform duration-200 ease-out hover:scale-110 active:scale-95 !left-[-9px] ${isDark ? 'bg-slate-700 border-2 border-slate-900' : 'bg-white border-2 border-slate-200'}`}
             />
 
             <div className="flex items-center justify-between mb-3">
@@ -32,7 +34,7 @@ export default function OperationNode({ id, type, data }: { id: string, type: st
                     <div className="p-1.5 bg-orange-500/10 rounded-lg">
                         {operationIcons[type] || <Plus className="text-orange-400 w-4 h-4" />}
                     </div>
-                    <span className="text-[11px] font-bold text-slate-100 uppercase tracking-tight">
+                    <span className={`text-[11px] font-bold uppercase tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                         {operationLabels[type] || 'Operation'}
                     </span>
                 </div>
@@ -45,11 +47,11 @@ export default function OperationNode({ id, type, data }: { id: string, type: st
                 </button>
             </div>
 
-            <div className="bg-slate-950/80 rounded-lg p-2 border border-slate-800">
+            <div className={`${isDark ? 'bg-slate-950/80 rounded-lg p-2 border border-slate-800' : 'bg-white rounded-lg p-2 border border-slate-200'}`}>
                 {isError ? (
                     <span className="text-[10px] font-mono text-red-400">{isError}</span>
                 ) : (
-                    <span className="text-[10px] font-mono text-purple-300">
+                    <span className={`text-[10px] font-mono ${isDark ? 'text-purple-300' : 'text-slate-600'}`}>
                         {data.value !== undefined ? `Result: ${data.value}` : 'Waiting for Run...'}
                     </span>
                 )}
@@ -58,7 +60,8 @@ export default function OperationNode({ id, type, data }: { id: string, type: st
             <Handle
                 type="source"
                 position={Position.Right}
-                className="w-3.5 h-3.5 bg-indigo-500 border-2 border-slate-900 rounded-full shadow-lg !right-[-7px]"
+                style={{ top: '50%' }}
+                className={`w-5 h-5 rounded-full shadow-lg transition-transform duration-200 ease-out hover:scale-110 active:scale-95 !right-[-9px] ${isDark ? 'bg-slate-700 border-2 border-slate-900' : 'bg-white border-2 border-slate-200'}`}
             />
         </div>
     );

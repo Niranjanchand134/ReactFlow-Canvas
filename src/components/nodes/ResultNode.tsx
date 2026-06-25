@@ -31,12 +31,13 @@ function ResizeIcon() {
     );
 }
 
-const ResultNode = ({ id, data, selected }: NodeProps) => {
+const ResultNode = ({ id, data, selected, theme }: NodeProps & { theme?: 'light' | 'dark' }) => {
     const hasImage = !!data.image;
+    const isDark = theme !== 'light';
 
     return (
         <div
-            className={`group relative p-2 bg-slate-900/90 backdrop-blur border ${hasImage ? 'border-emerald-500 ring-8 ring-emerald-500/5' : 'border-slate-700'} rounded-xl shadow-2xl transition-all h-full w-full`}
+            className={`group relative p-2 ${isDark ? 'bg-slate-900/90 backdrop-blur border' : 'bg-white border'} ${hasImage ? (isDark ? 'border-emerald-500 ring-8 ring-emerald-500/5' : 'border-emerald-500 ring-4 ring-emerald-100') : (isDark ? 'border-slate-700' : 'border-slate-200')} rounded-xl shadow-2xl transition-all h-full w-full`}
         >
             {hasImage && (
                 <NodeResizeControl style={controlStyle} minWidth={150} minHeight={100}>
@@ -47,12 +48,12 @@ const ResultNode = ({ id, data, selected }: NodeProps) => {
             {/* Inner Clipped Content */}
             <div className={`absolute inset-0 overflow-hidden rounded-lg flex flex-col pointer-events-none ${!hasImage ? 'relative pointer-events-auto' : ''}`}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-3 border-b border-slate-800 shrink-0 pointer-events-auto bg-slate-900/80 backdrop-blur-sm z-10">
+                <div className={`flex items-center justify-between p-3 shrink-0 pointer-events-auto z-10 ${isDark ? 'border-b border-slate-800 bg-slate-900/80 backdrop-blur-sm' : 'border-b border-slate-200 bg-white/90'}`}>
                     <div className="flex items-center gap-2.5">
                         <div className="p-1.5 bg-emerald-500/10 rounded-lg">
                             <LogOut className="text-emerald-400 w-4 h-4" />
                         </div>
-                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-tight">Result</span>
+                        <span className={`text-[11px] font-bold uppercase tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Result</span>
                     </div>
                     <button
                         onClick={() => data.onDelete(id)}
@@ -65,7 +66,7 @@ const ResultNode = ({ id, data, selected }: NodeProps) => {
 
                 {/* Content Area */}
                 <div className={`flex-1 flex flex-col overflow-hidden min-h-0 pointer-events-auto ${hasImage ? 'p-0' : 'p-4 space-y-4'}`}>
-                    <div className={`bg-slate-950 flex-1 flex items-center justify-center overflow-hidden ${!hasImage ? 'p-4 rounded-lg border border-slate-800' : ''}`}>
+                    <div className={`${isDark ? 'bg-slate-950' : 'bg-white'} flex-1 flex items-center justify-center overflow-hidden ${!hasImage ? (isDark ? 'p-4 rounded-lg border border-slate-800' : 'p-4 rounded-lg border border-slate-200') : ''}`}>
                         {hasImage ? (
                             <img
                                 src={data.image}
@@ -73,7 +74,7 @@ const ResultNode = ({ id, data, selected }: NodeProps) => {
                                 className="w-full h-full object-contain pointer-events-none"
                             />
                         ) : (
-                            <span className="text-2xl font-bold font-mono text-emerald-400 whitespace-nowrap overflow-x-auto w-full text-center scrollbar-hide">
+                            <span className={`text-2xl font-bold font-mono whitespace-nowrap overflow-x-auto w-full text-center scrollbar-hide ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                                 {data.value !== undefined ? data.value : '---'}
                             </span>
                         )}
@@ -92,8 +93,8 @@ const ResultNode = ({ id, data, selected }: NodeProps) => {
             <Handle
                 type="target"
                 position={Position.Left}
-                className="w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-lg !left-[-7px] z-[1001]"
                 style={{ top: '50%' }}
+                className={`w-5 h-5 rounded-full shadow-lg transition-transform duration-200 ease-out hover:scale-110 active:scale-95 !left-[-9px] z-[1001] ${isDark ? 'bg-slate-700 border-2 border-slate-900' : 'bg-white border-2 border-slate-200'}`}
             />
         </div>
     );

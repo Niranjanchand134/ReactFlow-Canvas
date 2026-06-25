@@ -11,6 +11,7 @@ A Vite + React app for building interactive flows with React Flow. This project 
 - Interactive React Flow canvas with drag-and-drop support
 - Custom node and edge components
 - Keyboard shortcuts for flow actions
+- Theme toggle (light/dark mode)
 - Sidebar, header, and footer UI
 
 ## Run locally
