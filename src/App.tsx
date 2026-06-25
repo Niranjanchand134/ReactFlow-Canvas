@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import FlowCanvas from './components/FlowCanvas';
+import "react-toastify/dist/ReactToastify.css";
 import { ReactFlowProvider } from 'reactflow';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
@@ -20,6 +21,18 @@ function MainContent() {
 
   const [historyStatus, setHistoryStatus] = React.useState({ canUndo: false, canRedo: false });
   const [isRunning, setIsRunning] = React.useState(false);
+  const [theme, setTheme] = React.useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (window.localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+    }
+    return 'dark';
+  });
+
+  React.useEffect(() => {
+    document.body.classList.toggle('light-theme', theme === 'light');
+    document.body.classList.toggle('dark-theme', theme === 'dark');
+    window.localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const onRun = useCallback(async () => {
     if (canvasRef.current) {
@@ -75,7 +88,7 @@ function MainContent() {
   });
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-200 overflow-hidden font-sans">
+    <div className={`h-screen flex flex-col overflow-hidden font-sans ${theme === 'dark' ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-950'}`}>
       <Header
         onRun={onRun}
         onUndo={onUndo}
@@ -83,14 +96,16 @@ function MainContent() {
         canUndo={historyStatus.canUndo}
         canRedo={historyStatus.canRedo}
         isRunning={isRunning}
+        theme={theme}
+        onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
       />
       <main className="flex-1 flex overflow-hidden">
-        <Sidebar />
+        <Sidebar theme={theme} />
         <div className="flex-1 h-full relative">
-          <FlowCanvas ref={canvasRef} onHistoryChange={updateStatus} />
+          <FlowCanvas ref={canvasRef} onHistoryChange={updateStatus} theme={theme} />
         </div>
       </main>
-      <Footer />
+      <Footer theme={theme} />
     </div>
   );
 }

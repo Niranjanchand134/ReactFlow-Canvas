@@ -6,6 +6,7 @@ interface ContextMenuProps {
     y: number;
     nodeId?: string;
     hasImage?: boolean;
+    theme: 'light' | 'dark';
     onDuplicate: (id: string) => void;
     onDelete: (id: string) => void;
     onDownloadImage: (id: string) => void;
@@ -18,6 +19,7 @@ export default function ContextMenu({
     y,
     nodeId,
     hasImage,
+    theme,
     onDuplicate,
     onDelete,
     onDownloadImage,
@@ -27,20 +29,20 @@ export default function ContextMenu({
     return (
         <div
             style={{ top: y, left: x }}
-            className="fixed z-[100] w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-100 origin-top-left"
+            className={`fixed z-[100] w-48 backdrop-blur-xl border rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-100 origin-top-left ${theme === 'dark' ? 'bg-slate-900/95 border-slate-700/50' : 'bg-white border-slate-200'}`}
             onClick={onClose}
             onContextMenu={(e) => {
                 e.preventDefault();
                 onClose();
             }}
         >
-            <div className="px-3 py-2 border-b border-slate-800/50 flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <div className={`px-3 py-2 flex items-center justify-between mb-1 ${theme === 'dark' ? 'border-b border-slate-800/50' : 'border-b border-slate-200'}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                     {nodeId ? 'Node Actions' : 'Canvas Actions'}
                 </span>
                 <button
                     onClick={onClose}
-                    className="p-1 hover:bg-slate-800 rounded transition-colors text-slate-500"
+                    className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'}`}
                 >
                     <X size={10} />
                 </button>

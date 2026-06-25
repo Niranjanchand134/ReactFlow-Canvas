@@ -20,9 +20,10 @@ import ImageNode from './nodes/ImageNode';
 import CumulativeNode from './nodes/CumulativeNode';
 import { CustomEdge } from './edges/CustomEdge';
 import ContextMenu from './ContextMenu';
+import { SuccesfulMessageToast, ErrorMessageToast, WarningMessageToast } from '../utils/Tostify.util';
 
-// Move nodeTypes and edgeTypes outside or memoize them
-const INITIAL_NODE_TYPES = {
+// Build nodeTypes per-theme so node components receive the `theme` prop
+const BASE_NODE_TYPES = {
   textUpdater: InputNode,
   additionNode: OperationNode,
   subtractionNode: OperationNode,
@@ -33,59 +34,66 @@ const INITIAL_NODE_TYPES = {
   cumulativeNode: CumulativeNode,
 };
 
-const INITIAL_EDGE_TYPES = {
+const EDGE_TYPES = {
   custom: CustomEdge,
 };
 
-function CustomControls() {
+function CustomControls({ theme }: { theme: 'light' | 'dark' }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
 
   return (
-    <Panel position="bottom-right" className="flex items-center bg-slate-900 border border-slate-700/50 rounded-lg p-1.5 shadow-2xl backdrop-blur gap-1">
-      <button onClick={() => zoomIn()} className="p-2 hover:bg-slate-800 text-slate-400 rounded-md transition-colors">
+    <Panel position="bottom-right" className={`flex items-center rounded-lg p-1.5 shadow-2xl backdrop-blur gap-1 ${theme === 'dark' ? 'bg-slate-900 border border-slate-700/50' : 'bg-white/80 border border-slate-200'}`}>
+      <button onClick={() => zoomIn()} className={`p-2 rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-800'}`}>
         <Plus className="w-4 h-4" />
       </button>
-      <div className="w-px h-5 bg-slate-800 mx-1"></div>
-      <button onClick={() => zoomOut()} className="p-2 hover:bg-slate-800 text-slate-400 rounded-md transition-colors">
+      <div className={`${theme === 'dark' ? 'w-px h-5 bg-slate-800 mx-1' : 'w-px h-5 bg-slate-200 mx-1'}`}></div>
+      <button onClick={() => zoomOut()} className={`p-2 rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-800'}`}>
         <Minus className="w-4 h-4" />
       </button>
-      <div className="w-px h-5 bg-slate-800 mx-1"></div>
-      <button onClick={() => fitView()} className="p-2 hover:bg-slate-800 text-slate-400 rounded-md transition-colors">
+      <div className={`${theme === 'dark' ? 'w-px h-5 bg-slate-800 mx-1' : 'w-px h-5 bg-slate-200 mx-1'}`}></div>
+      <button onClick={() => fitView()} className={`p-2 rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-800'}`}>
         <Scan className="w-4 h-4" />
       </button>
-      <div className="w-px h-5 bg-slate-800 mx-1"></div>
-      <span className="text-xs font-bold text-slate-500 px-3">{Math.round(zoom * 100)}%</span>
+      <div className={`${theme === 'dark' ? 'w-px h-5 bg-slate-800 mx-1' : 'w-px h-5 bg-slate-200 mx-1'}`}></div>
+      <span className={`text-xs font-bold px-3 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-700'}`}>{Math.round(zoom * 100)}%</span>
     </Panel>
   );
 }
 
-function CustomMinimap() {
+function CustomMinimap({ theme }: { theme: 'light' | 'dark' }) {
   return (
     <MiniMap
       position="bottom-left"
-      nodeStrokeColor="#6366f1"
+      nodeStrokeColor={theme === 'dark' ? '#6366f1' : '#1e293b'}
       nodeColor={(n) => {
-        if (n.type === 'textUpdater') return '#3b82f6';
-        if (n.type === 'resultNode') return '#10b981';
-        return '#f97316';
+        if (n.type === 'textUpdater') return theme === 'dark' ? '#3b82f6' : '#1e40af';
+        if (n.type === 'resultNode') return theme === 'dark' ? '#10b981' : '#047857';
+        return theme === 'dark' ? '#f97316' : '#c2410c';
       }}
       nodeBorderRadius={8}
-      maskColor="rgba(15, 23, 42, 0.6)"
-      className="!bg-slate-900/80 !border-slate-700 !rounded-xl !shadow-2xl !backdrop-blur-md !m-4 !w-44 !h-28"
+      maskColor={theme === 'dark' ? 'rgba(15, 23, 42, 0.6)' : 'rgba(255,255,255,0.6)'}
+      className={`${theme === 'dark' ? '!bg-slate-900/80 !border-slate-700' : '!bg-white/90 !border-slate-200'} !rounded-xl !shadow-2xl !backdrop-blur-md !m-4 !w-44 !h-28`}
     />
   );
 }
 
-const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: any) => void }, ref) => {
+const FlowCanvas = forwardRef(({ onHistoryChange, theme }: { onHistoryChange: (status: any) => void; theme: 'light' | 'dark' }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [menu, setMenu] = React.useState<{ x: number, y: number, nodeId?: string, hasImage?: boolean } | null>(null);
-  const [showCopyFeedback, setShowCopyFeedback] = React.useState(false);
 
   // Memoize nodeTypes and edgeTypes to satisfy React Flow warnings and optimize renders
-  const nodeTypes = React.useMemo(() => INITIAL_NODE_TYPES, []);
-  const edgeTypes = React.useMemo(() => INITIAL_EDGE_TYPES, []);
+  const nodeTypes = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    Object.keys(BASE_NODE_TYPES).forEach((key) => {
+      const Cmp: any = (BASE_NODE_TYPES as any)[key];
+      map[key] = (props: any) => <Cmp {...props} theme={theme} />;
+    });
+    return map;
+  }, [theme]);
+
+  const edgeTypes = React.useMemo(() => EDGE_TYPES, []);
 
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow();
 
@@ -137,6 +145,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     pushToHistory();
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    WarningMessageToast("Node Deleted Successfully");
   }, [setNodes, setEdges, pushToHistory]);
 
   const onNodeValueChange = useCallback((id: string, newValue: any) => {
@@ -210,6 +219,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     pushToHistory();
     setNodes((nds) => nds.map(n => ({ ...n, selected: false })).concat(newNode));
     setMenu(null);
+    SuccesfulMessageToast("Node Duplicated Successfully");
   }, [getNodes, setNodes, pushToHistory, onNodeValueChange, onDeleteNode]);
 
   const onExport = useCallback(() => {
@@ -241,6 +251,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     link.click();
     document.body.removeChild(link);
     setMenu(null);
+    SuccesfulMessageToast("Image Downloaded Successfully");
   }, [getNodes]);
 
   const copy = useCallback(() => {
@@ -248,10 +259,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     if (selectedNodes.length > 0) {
       copyBuffer.current = selectedNodes;
       pasteCount.current = 0; // Reset offset count on new copy
-
-      // Show feedback
-      setShowCopyFeedback(true);
-      setTimeout(() => setShowCopyFeedback(false), 2000);
+      SuccesfulMessageToast("Nodes Copied to Clipboard");
     }
   }, [getNodes]);
 
@@ -378,6 +386,11 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
       }
 
       results[nodeId] = error ? { error } : { value, image };
+
+      if (error) {
+        ErrorMessageToast(error);
+      }
+
       return value !== undefined ? value : image;
     };
 
@@ -459,8 +472,10 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     [screenToFlowPosition, setNodes, onNodeValueChange, onDeleteNode, pushToHistory]
   );
 
+  const backgroundDotColor = theme === 'dark' ? '#0f172a' : '#e6eef8';
+
   return (
-    <div className="flex-1 h-full bg-slate-950 relative">
+    <div className={`flex-1 h-full relative ${theme === 'dark' ? 'bg-slate-950' : 'bg-white'}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -484,35 +499,29 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
           animated: true,
         }}
         fitView
-        className="bg-slate-950"
+        className={theme === 'dark' ? 'bg-slate-950' : 'bg-white'}
       >
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="#1e293b"
+          color={backgroundDotColor}
         />
-        <CustomControls />
-        <CustomMinimap />
+        <CustomControls theme={theme} />
+        <CustomMinimap theme={theme} />
         {menu && (
           <ContextMenu
             x={menu.x}
             y={menu.y}
             nodeId={menu.nodeId}
             hasImage={menu.hasImage}
+            theme={theme}
             onDuplicate={onDuplicate}
             onDelete={onDeleteNode}
             onDownloadImage={onDownloadImage}
             onExport={onExport}
             onClose={() => setMenu(null)}
           />
-        )}
-
-        {showCopyFeedback && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-indigo-600/90 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-2xl border border-indigo-400/30 animate-in slide-in-from-bottom-2 fade-in duration-300 z-[60] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            Nodes Copied to Clipboard
-          </div>
         )}
       </ReactFlow>
     </div>

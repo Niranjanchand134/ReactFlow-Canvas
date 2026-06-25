@@ -27,7 +27,7 @@ export const useKeyboardShortcuts = ({
                 return;
             }
 
-            const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+            const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent || '');
             const modifier = isMac ? event.metaKey : event.ctrlKey;
 
             if (!modifier) return;
