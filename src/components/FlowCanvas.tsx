@@ -20,6 +20,7 @@ import ImageNode from './nodes/ImageNode';
 import CumulativeNode from './nodes/CumulativeNode';
 import { CustomEdge } from './edges/CustomEdge';
 import ContextMenu from './ContextMenu';
+import { SuccesfulMessageToast, ErrorMessageToast, WarningMessageToast } from '../utils/Tostify.util';
 
 // Move nodeTypes and edgeTypes outside or memoize them
 const INITIAL_NODE_TYPES = {
@@ -81,7 +82,6 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [menu, setMenu] = React.useState<{ x: number, y: number, nodeId?: string, hasImage?: boolean } | null>(null);
-  const [showCopyFeedback, setShowCopyFeedback] = React.useState(false);
 
   // Memoize nodeTypes and edgeTypes to satisfy React Flow warnings and optimize renders
   const nodeTypes = React.useMemo(() => INITIAL_NODE_TYPES, []);
@@ -137,6 +137,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     pushToHistory();
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    WarningMessageToast("Node Deleted Successfully");
   }, [setNodes, setEdges, pushToHistory]);
 
   const onNodeValueChange = useCallback((id: string, newValue: any) => {
@@ -210,6 +211,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     pushToHistory();
     setNodes((nds) => nds.map(n => ({ ...n, selected: false })).concat(newNode));
     setMenu(null);
+    SuccesfulMessageToast("Node Duplicated Successfully");
   }, [getNodes, setNodes, pushToHistory, onNodeValueChange, onDeleteNode]);
 
   const onExport = useCallback(() => {
@@ -241,6 +243,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     link.click();
     document.body.removeChild(link);
     setMenu(null);
+    SuccesfulMessageToast("Image Downloaded Successfully");
   }, [getNodes]);
 
   const copy = useCallback(() => {
@@ -248,10 +251,7 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
     if (selectedNodes.length > 0) {
       copyBuffer.current = selectedNodes;
       pasteCount.current = 0; // Reset offset count on new copy
-
-      // Show feedback
-      setShowCopyFeedback(true);
-      setTimeout(() => setShowCopyFeedback(false), 2000);
+      SuccesfulMessageToast("Nodes Copied to Clipboard");
     }
   }, [getNodes]);
 
@@ -378,6 +378,11 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
       }
 
       results[nodeId] = error ? { error } : { value, image };
+
+      if (error) {
+        ErrorMessageToast(error);
+      }
+
       return value !== undefined ? value : image;
     };
 
@@ -506,13 +511,6 @@ const FlowCanvas = forwardRef(({ onHistoryChange }: { onHistoryChange: (status: 
             onExport={onExport}
             onClose={() => setMenu(null)}
           />
-        )}
-
-        {showCopyFeedback && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-indigo-600/90 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-2xl border border-indigo-400/30 animate-in slide-in-from-bottom-2 fade-in duration-300 z-[60] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            Nodes Copied to Clipboard
-          </div>
         )}
       </ReactFlow>
     </div>

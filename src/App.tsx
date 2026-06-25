@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import FlowCanvas from './components/FlowCanvas';
+import "react-toastify/dist/ReactToastify.css";
 import { ReactFlowProvider } from 'reactflow';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 

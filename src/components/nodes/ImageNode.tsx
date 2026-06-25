@@ -1,6 +1,7 @@
 import React, { useState, useRef, memo } from 'react';
 import { Handle, Position, NodeProps, NodeResizeControl } from 'reactflow';
 import { Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { SuccesfulMessageToast, WarningMessageToast } from '../../utils/Tostify.util';
 
 const controlStyle = {
     background: 'transparent',
@@ -43,7 +44,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         const file = event.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
-                alert('Please upload an image file.');
+                WarningMessageToast('Please upload an image file.');
                 return;
             }
 
@@ -56,6 +57,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 }
             };
             reader.readAsDataURL(file);
+
         }
     };
 
